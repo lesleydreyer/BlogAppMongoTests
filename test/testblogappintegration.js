@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 // this makes the expect syntax available throughout
 // this module
 const expect = chai.expect;
+const should = chai.should();
 
 const {BlogPost} = require('../models');
 const {app, runServer, closeServer} = require('../server');
@@ -68,15 +69,7 @@ function generateContent() {
   return content[Math.floor(Math.random() * content.length)];
 }
 
-// used to generate data to put in db
-function generateGrade() {
-  const grades = ['A', 'B', 'C', 'D', 'F'];
-  const grade = grades[Math.floor(Math.random() * grades.length)];
-  return {
-    date: faker.date.past(),
-    grade: grade
-  };
-}
+
 
 // generate an object represnting a restaurant.
 // can be used to generate seed data for db
@@ -144,11 +137,12 @@ describe('Blog API resource', function() {
           res = _res;
           expect(res).to.have.status(200);
           // otherwise our db seeding didn't work
-          expect(res.body.blogposts).to.have.lengthOf.at.least(1);
+          res.body.should.have.lengthOf.at.least(1);
+          //expect(res.body.blogposts).to.have.lengthOf.at.least(1);
           return BlogPost.count();
         })
         .then(function(count) {
-          expect(res.body.blogposts).to.have.lengthOf(count);
+          res.body.should.have.lengthOf(count);//expect(res.body.blogposts).to.have.lengthOf(count);
         });
     });
 
@@ -165,20 +159,24 @@ describe('Blog API resource', function() {
           expect(res.body.blogposts).to.be.a('array');
           expect(res.body.blogposts).to.have.lengthOf.at.least(1);
 
-          res.body.blogposts.forEach(function(restaurant) {
+          /*res.body.blogposts.forEach(function(restaurant) {
             expect(blogpost).to.be.a('object');
             expect(blogpost).to.include.keys(
               'id', 'title', 'author', 'content');//created?
+          });*/
+          res.body.forEach(function(post) {
+            post.should.be.a('object');
+            post.should.include.keys('id', 'title', 'content', 'author', 'created');
           });
-          resPost = res.body.blogposts[0];
+
+          resPost = res.body[0]; // res.body.blogposts[0];
           return BlogPost.findById(resPost.id);
         })
-        .then(function(blogpost) {//post?
-
-          expect(resPost.id).to.equal(blogpo.id);
-          expect(resPost.title).to.equal(blogpost.title);
-          expect(resPost.author).to.equal(blogpost.author);
-          expect(resPost.content).to.equal(blogpost.content);
+        .then(function(post) {//blogpost?
+          //expect(resPost.id).to.equal(post.id);
+          expect(resPost.title).to.equal(post.title);
+          expect(resPost.author).to.equal(post.author);
+          expect(resPost.content).to.equal(post.content);
         });
     });
   });
@@ -188,11 +186,8 @@ describe('Blog API resource', function() {
     // then prove that the restaurant we get back has
     // right keys, and that `id` is there (which means
     // the data was inserted into db)
-    it('should add a new blog post', function() {
-
+   /* it('should add a new blog post', function() {
       const newPost = generateBlogData();
-
-
       return chai.request(app)
         .post('/posts')
         .send(newPost)
@@ -216,7 +211,45 @@ describe('Blog API resource', function() {
           expect(blogpost.content).to.equal(newPost.content);
         });
     });
+  });*/
+
+  it('should add a new blog post', function () {
+
+    const newPost = {
+      title: faker.lorem.sentence(),
+      author: {
+        firstName: faker.name.firstName(),
+        lastName: faker.name.lastName(),
+      },
+      content: faker.lorem.text()
+    };
+
+    return chai.request(app)
+      .post('/posts')
+      .send(newPost)
+      .then(function (res) {
+        res.should.have.status(201);
+        res.should.be.json;
+        res.body.should.be.a('object');
+        res.body.should.include.keys(
+          'id', 'title', 'content', 'author', 'created');
+        res.body.title.should.equal(newPost.title);
+        // cause Mongo should have created id on insertion
+        res.body.id.should.not.be.null;
+        res.body.author.should.equal(
+          `${newPost.author.firstName} ${newPost.author.lastName}`);
+        res.body.content.should.equal(newPost.content);
+        return BlogPost.findById(res.body.id);
+      })
+      .then(function (post) {
+        post.title.should.equal(newPost.title);
+        post.content.should.equal(newPost.content);
+        post.author.firstName.should.equal(newPost.author.firstName);
+        post.author.lastName.should.equal(newPost.author.lastName);
+      });
   });
+});
+
 
   describe('PUT endpoint', function() {
 
@@ -227,20 +260,20 @@ describe('Blog API resource', function() {
     //  4. Prove restaurant in db is correctly updated
     it('should update fields you send over', function() {
       const updateData = {
-        title: 'mr futa fu',
-        author: {firstName:'futuristic', lastName: 'fusion'}, 
-        content: 'fofofofofofo'
+        title: 'magical futa fu',
+        author: {firstName:'aafirstaa', lastName: 'bblastbb'}, 
+        content: 'fofofo content fofofo'
       };
 
       return BlogPost
         .findOne()
-        .then(function(blogpost) {
-          updateData.id = blogpost.id;
+        .then(function(post) {
+          updateData.id = post.id;
 
           // make request then inspect it to make sure it reflects
           // data we sent
           return chai.request(app)
-            .put(`/posts/${blogpost.id}`)
+            .put(`/posts/${post.id}`)
             .send(updateData);
         })
         .then(function(res) {
@@ -249,10 +282,10 @@ describe('Blog API resource', function() {
           return BlogPost.findById(updateData.id);
         })
         .then(function(blogpost) {
-          expect(blogpost.title).to.equal(updateData.title);
-          expect(blogpost.author.firstName).to.equal(updateData.author.firstName);
-          expect(blogpost.author.lastName).to.equal(updateData.author.lastName);
-          expect(blogpost.content).to.equal(updateData.content);
+          expect(post.title).to.equal(updateData.title);
+          expect(post.author.firstName).to.equal(updateData.author.firstName);
+          expect(post.author.lastName).to.equal(updateData.author.lastName);
+          expect(post.content).to.equal(updateData.content);
         });
     });
   });

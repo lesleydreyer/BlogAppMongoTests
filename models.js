@@ -9,8 +9,12 @@ var authorSchema = mongoose.Schema({
   userName: { type: String, unique: true}
 });
 
+var commentSchema = mongoose.Schema({ content: 'string' });
+//const commentsSchema = mongoose.Schema({
+//  content: string
+//});
 const blogPostSchema = mongoose.Schema({
-  authors: [{type.mongoose.Schema.Types.ObjectId, ref: 'Author'}],
+  //authors: [{type:mongoose.Schema.Types.ObjectId, ref: 'Author'}],
   //author: {firstName: String, lastName: String},
   title: {type: String }, //,required: true},
   author: {type: mongoose.Schema.Types.ObjectId, ref: 'Author'},
@@ -19,9 +23,7 @@ const blogPostSchema = mongoose.Schema({
   comments: [commentSchema]//comments: [commentsSchema]
 });
 
-const commentsSchema = mongoose.Schema({
-  content: string
-});
+
 
 //author property is now _id of authors collection so this comes out undefined
 //use mongoose middleware function to populate author data before each call to findOne
