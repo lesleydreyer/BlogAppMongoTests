@@ -1,2 +1,1 @@
-Blog app challenge solution
-==========================
+add users and comments to blogging app
